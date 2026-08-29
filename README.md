@@ -51,6 +51,32 @@ npm run dev
 
 Open **http://localhost:5173** in your browser.
 
+## Deploy on Vercel
+
+The repo is configured for Vercel with:
+- **Frontend** → static files from `frontend/dist`
+- **API** → serverless functions in `/api` (`/api/process`, `/api/health`)
+
+### Steps
+
+1. Go to [vercel.com/new](https://vercel.com/new) and import:
+   `https://github.com/govindarajv-ev91/FLK-LMK-Report`
+2. **Important:** leave **Root Directory** as `.` (project root). Do **not** set it to `frontend` only — that causes `404: NOT_FOUND` on `/api/process`.
+3. Vercel will read `vercel.json` automatically. Click **Deploy**.
+
+Or deploy from CLI:
+
+```bash
+npm install -g vercel
+cd "FLK-LMK Report"
+vercel --prod
+```
+
+### Vercel notes
+
+- Upload limit on the free plan is about **4.5 MB per request**. Large ZIP/GZ files may need a paid plan or local backend.
+- After deploy, the app and API share the same URL (e.g. `https://your-app.vercel.app/api/process`).
+
 ### Quick test (backend only)
 
 ```bash
