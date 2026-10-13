@@ -91,4 +91,17 @@ const tarBuffer = await buildTarBuffer([{ name: "sample.xlsx", data: excelBuffer
 const tarGz = gzipSync(tarBuffer);
 await runCase("TAR.GZ archive", tarGz, "bundle.tar.gz");
 
+const namedCsv = XLSX.utils.sheet_to_csv(XLSX.utils.aoa_to_sheet([COLUMNS, ...rows]));
+const namedGz = gzipSync(Buffer.from(namedCsv));
+const namedResult = await mergeArchiveUploads([{
+  name: "Final_Result_for_EV91TECHNOLOGIESPRIVATELIMITEDVOLUMETRIC_2026-Oct-12_23_BigQuery.csv.gz",
+  buffer: namedGz,
+}]);
+if (Object.keys(namedResult.merged[0]).at(-1) !== "FileName") {
+  throw new Error("FileName must be the final merged column");
+}
+if (namedResult.merged[0].FileName !== "EV91TECHNOLOGIESPRIVATELIMITEDVOLUMETRIC_2026-Oct") {
+  throw new Error(`Unexpected source filename: ${namedResult.merged[0].FileName}`);
+}
+
 console.log("All archive format tests passed.");

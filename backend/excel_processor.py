@@ -1,5 +1,6 @@
 import io
 import gzip
+import re
 import tarfile
 import zipfile
 from typing import BinaryIO
@@ -37,6 +38,20 @@ STATUS_COLUMNS = {
 }
 
 
+def _source_file_name(filename: str) -> str:
+    base = filename.replace("\\", "/").rsplit("/", 1)[-1]
+    without_extension = base
+    for extension in (".csv.gz", ".gz", ".xlsx", ".xls", ".xlsm"):
+        if without_extension.lower().endswith(extension):
+            without_extension = without_extension[: -len(extension)]
+            break
+    if without_extension.lower().startswith("final_result_for_"):
+        without_extension = without_extension[len("final_result_for_") :]
+
+    match = re.match(r"^(.*_\d{4}-[A-Za-z]{3})-\d{1,2}(?:_|$)", without_extension)
+    return match.group(1) if match else without_extension
+
+
 def _normalize_columns(df: pd.DataFrame) -> pd.DataFrame:
     df.columns = [str(c).strip() for c in df.columns]
     return df
@@ -55,6 +70,15 @@ def _read_excel_bytes(data: bytes, filename: str) -> pd.DataFrame:
     if missing:
         raise ValueError(f"{filename}: missing columns {', '.join(missing)}")
 
+    return df[EXPECTED_COLUMNS].copy()
+
+
+def _read_csv_bytes(data: bytes, filename: str) -> pd.DataFrame:
+    df = pd.read_csv(io.BytesIO(data))
+    df = _normalize_columns(df)
+    missing = [c for c in EXPECTED_COLUMNS if c not in df.columns]
+    if missing:
+        raise ValueError(f"{filename}: missing columns {', '.join(missing)}")
     return df[EXPECTED_COLUMNS].copy()
 
 
@@ -127,6 +151,9 @@ def extract_excel_from_gzip(gz_bytes: bytes, archive_name: str) -> list[pd.DataF
     if _is_gzip(inner):
         return extract_excel_from_gzip(inner, archive_name)
 
+    if archive_name.lower().endswith(".csv.gz"):
+        return [_read_csv_bytes(inner, archive_name)]
+
     return [_read_excel_bytes(inner, archive_name)]
 
 
@@ -146,7 +173,10 @@ def merge_zip_uploads(zip_files: list[tuple[str, BinaryIO]]) -> tuple[pd.DataFra
         content = file_obj.read()
         if not content:
             raise ValueError(f"{archive_name}: empty file")
-        all_frames.extend(extract_excel_from_archive(content, archive_name))
+        file_name = _source_file_name(archive_name)
+        for frame in extract_excel_from_archive(content, archive_name):
+            frame["FileName"] = file_name
+            all_frames.append(frame)
 
     if not all_frames:
         raise ValueError("No Excel data found in uploaded archive files")

@@ -266,6 +266,16 @@ function firstNonEmpty(values) {
   return "";
 }
 
+function sourceFileName(filename) {
+  const base = filename.split(/[\\/]/).pop() ?? filename;
+  const withoutExtension = base
+    .replace(/\.(?:csv\.)?gz$/i, "")
+    .replace(/\.(?:xlsx?|xlsm)$/i, "")
+    .replace(/^Final_Result_for_/i, "");
+  const datedName = withoutExtension.match(/^(.*_\d{4}-[A-Za-z]{3})-\d{1,2}(?:_|$)/);
+  return datedName?.[1] ?? withoutExtension;
+}
+
 export function buildFhridSummary(rows) {
   const byFhrid = new Map();
 
@@ -326,7 +336,9 @@ export async function mergeArchiveUploads(archiveFiles) {
     if (!buffer?.length) {
       throw new Error(`${name}: empty file`);
     }
-    allRows = allRows.concat(await extractExcelFromArchive(buffer, name));
+    const fileName = sourceFileName(name);
+    const rows = await extractExcelFromArchive(buffer, name);
+    allRows = allRows.concat(rows.map((row) => ({ ...row, FileName: fileName })));
   }
 
   if (!allRows.length) {

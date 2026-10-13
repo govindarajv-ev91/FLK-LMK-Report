@@ -31,6 +31,17 @@ RunsheetShipmentStatus, GTNL
 
 ## Run locally
 
+From the project root, install dependencies for both services and start them together:
+
+```bash
+npm install --prefix backend
+npm install --prefix frontend
+npm run dev
+```
+
+Open **http://localhost:5173**. Press **Ctrl+C** to stop both servers.
+You can also start each service separately as shown below.
+
 ### 1. Backend (Node.js)
 
 ```bash

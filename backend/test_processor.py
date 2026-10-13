@@ -1,5 +1,6 @@
 """Quick sanity test for excel_processor."""
 import io
+import gzip
 import zipfile
 
 import pandas as pd
@@ -44,3 +45,12 @@ assert summary.loc[summary["FHRID"] == "FHR002", "Total"].iloc[0] == 2
 
 print("All tests passed.")
 print(summary.to_string(index=False))
+
+csv_buf = io.BytesIO()
+df.to_csv(csv_buf, index=False)
+named_gz_buf = io.BytesIO(gzip.compress(csv_buf.getvalue()))
+named_merged, _ = merge_zip_uploads([
+    ("Final_Result_for_EV91TECHNOLOGIESPRIVATELIMITEDVOLUMETRIC_2026-Oct-12_23_BigQuery.csv.gz", named_gz_buf)
+])
+assert named_merged.columns[-1] == "FileName"
+assert named_merged["FileName"].iloc[0] == "EV91TECHNOLOGIESPRIVATELIMITEDVOLUMETRIC_2026-Oct"
